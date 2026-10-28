@@ -4,7 +4,7 @@
 #
 Pod::Spec.new do |s|
   s.name             = 'xue_hua_navite_auto_update'
-  s.version          = '1.0.0'
+  s.version          = '1.0.1'
   s.summary          = 'Flutter desktop auto-update and self-relaunch plugin with out-of-process native progress UI.'
   s.description      = <<-DESC
 A production-grade Flutter desktop (macOS, Windows, Linux) auto-update and self-relaunch plugin supporting standard installer packages (.dmg, .pkg, .exe, .AppImage, .deb, .rpm), out-of-process native progress dialogs, on-demand privilege elevation, and automatic rollback.

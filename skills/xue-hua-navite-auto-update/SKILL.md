@@ -97,7 +97,7 @@ Future<void> performDesktopUpdate({
   - Backs up the existing `.app` to `.app.bak` before copying with `/usr/bin/ditto` and clearing quarantine attributes via `xattr -cr`. If copying fails or the user cancels the Touch ID / password prompt (`osascript`), `.app.bak` is automatically restored and relaunched.
 - **Windows (Inno Setup `.exe`)**:
   - Passes `/SILENT /SUPPRESSMSGBOXES /NORESTART /SP- /CLOSEAPPLICATIONS` when `showProgressDialog: true`, displaying Inno Setup's native progress bar window without wizard pages.
-  - Runs a detached background guardian script (`CREATE_NO_WINDOW | DETACHED_PROCESS`) that waits for the installer to finish and guarantees 100% app relaunch even if `[Run]` is omitted in `.iss` or the user cancels the UAC prompt.
+  - Runs a detached background guardian script (absolute `powershell.exe` path, `CREATE_NO_WINDOW | CREATE_BREAKAWAY_FROM_JOB`, WMI fallback) that waits for the installer to finish and guarantees 100% app relaunch even if `[Run]` is omitted in `.iss` or the user cancels the UAC prompt.
 - **Linux (`.AppImage` / `.deb` / `.rpm`)**:
   - `.AppImage` updates replace `$APPIMAGE` atomically with `.bak` rollback and require no root password.
   - `.deb` (`pkexec apt-get install -y --allow-downgrades`) and `.rpm` (`pkexec dnf install -y` / `zypper` / `rpm -Uvh --replacepkgs`) prompt for graphical Polkit authentication and always relaunch the app under the original non-root desktop user.
