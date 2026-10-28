@@ -14,6 +14,7 @@ dependencies:
 
   xue_hua_navite_auto_update:
     path: ../
+  xue_hua_file_operations: ^1.5.5
   cupertino_icons: ^2.0.0
 
 dev_dependencies:
