@@ -1,6 +1,7 @@
 ## Unreleased
 
 * Example workbench: pick a local installer with `xue_hua_file_operations` (`选择更新包 / Pick update package`), then run `checkEnvironment`, optional `verifyPackageChecksum`, and `installAndRelaunch`. Headless `--e2e-package` / `--e2e-sha` flags are unchanged.
+* Desktop native builds: replace a non-ASCII comment on Windows (MSVC C4819/C2220 under code page 936), compile the Windows plugin with `/utf-8`, set FetchContent `DOWNLOAD_EXTRACT_TIMESTAMP` (CMP0135), and bump example-test googletest from 1.11.0 to v1.16.0 so current CMake no longer warns.
 
 ## 1.0.1
 
