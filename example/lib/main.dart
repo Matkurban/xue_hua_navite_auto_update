@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -107,7 +108,7 @@ class _AutoUpdateWorkbenchPageState extends State<AutoUpdateWorkbenchPage> {
     if (widget.launchArgs.isNotEmpty) {
       _appendLog('Launched with relaunchArgs: ${widget.launchArgs.join(" ")}');
     }
-    _refreshEnvironment();
+    _refreshEnvironment().then((_) => _maybeRunE2EUpdate());
   }
 
   @override
@@ -321,6 +322,88 @@ class _AutoUpdateWorkbenchPageState extends State<AutoUpdateWorkbenchPage> {
       );
     } catch (e) {
       _appendLog('installAndRelaunch() error: $e');
+    }
+  }
+
+
+  /// Headless e2e: launch with
+  /// `--e2e-package=/path/to/update.(dmg|exe|AppImage) --e2e-sha=<hex>`
+  /// Writes JSON result to the platform temp dir as `xue_hua_auto_update_e2e.json`.
+  Future<void> _maybeRunE2EUpdate() async {
+    String? package;
+    String? sha;
+    for (final arg in widget.launchArgs) {
+      if (arg.startsWith('--e2e-package=')) {
+        package = arg.substring('--e2e-package='.length);
+      } else if (arg.startsWith('--e2e-sha=')) {
+        sha = arg.substring('--e2e-sha='.length);
+      }
+    }
+    if (package == null || package.isEmpty) {
+      return;
+    }
+
+    final resultPath = '${Directory.systemTemp.path}/xue_hua_auto_update_e2e.json';
+    Future<void> writeResult(Map<String, Object?> map) async {
+      await File(resultPath).writeAsString(
+        const JsonEncoder.withIndent('  ').convert(map),
+      );
+      _appendLog('E2E result written to $resultPath');
+    }
+
+    try {
+      _appendLog('E2E: starting auto-update test for $package');
+      final env = _envInfo ?? await _updater.checkEnvironment();
+      if (!env.canAutoUpdate) {
+        await writeResult(<String, Object?>{
+          'ok': false,
+          'stage': 'checkEnvironment',
+          'canAutoUpdate': false,
+          'blockReason': env.blockReason.name,
+          'statusMessage': env.statusMessage,
+          'bundlePath': env.bundlePath,
+        });
+        return;
+      }
+
+      final expected = (sha ?? '').trim().toLowerCase();
+      if (expected.length == 64) {
+        final matched = await _updater.verifyPackageChecksum(
+          filePath: package,
+          expectedSha256: expected,
+        );
+        if (!matched) {
+          await writeResult(<String, Object?>{
+            'ok': false,
+            'stage': 'verifyPackageChecksum',
+            'package': package,
+            'expectedSha256': expected,
+          });
+          return;
+        }
+      }
+
+      await writeResult(<String, Object?>{
+        'ok': true,
+        'stage': 'beforeInstallAndRelaunch',
+        'package': package,
+        'bundlePath': env.bundlePath,
+        'processId': env.processId,
+      });
+
+      await _updater.installAndRelaunch(
+        packagePath: package,
+        showProgressDialog: true,
+        strings: const UpdateProgressStrings.zhCN(),
+        relaunchArgs: const <String>['--e2e-updated=1'],
+        exitCurrentApp: true,
+      );
+    } catch (e) {
+      await writeResult(<String, Object?>{
+        'ok': false,
+        'stage': 'exception',
+        'error': e.toString(),
+      });
     }
   }
 

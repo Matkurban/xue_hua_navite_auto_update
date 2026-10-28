@@ -1,0 +1,74 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Matkurban/fpack/main/schema/fpack.schema.json
+# Packaging for xue_hua_navite_auto_update example.
+# Artifacts are standard installers the plugin can installAndRelaunch:
+#   macOS → dmg / pkg, Windows → Inno Setup exe, Linux → AppImage / deb / rpm
+# SHA-256 checksums (SHA256SUMS) feed verifyPackageChecksum().
+#
+# Usage (from this example/ directory):
+#   fpack doctor
+#   fpack build dmg --no-sign --force          # macOS local test without notarization
+#   fpack build exe --force                   # Windows (needs Inno Setup)
+#   fpack build appimage deb --force           # Linux
+# Then install the lower version, point the workbench at the higher-version
+# artifact + its SHA-256 from SHA256SUMS, and tap installAndRelaunch.
+
+app:
+  name: xue_hua_navite_auto_update_example
+  display_name: XueHua Auto Update Example
+  description: Desktop auto-update workbench for xue_hua_navite_auto_update
+  publisher: Matkurban
+  identifier: com.kurban.xue_hua_navite_auto_update_example
+  homepage: https://github.com/Matkurban/xue_hua_navite_auto_update
+  license: BSD-3-Clause
+
+build:
+  # Default targets when running plain `fpack build` (machine builds what it can).
+  targets: [dmg, pkg, exe, appimage, deb]
+
+output:
+  dir: "dist/{version}{+build}"
+  # Stable, predictable names so update tests can hardcode paths if needed.
+  name: "{app}-{version}{+build}-{platform}{-arch}{-variant}"
+  checksums: true
+  checksum_algorithm: sha256
+  overwrite: false
+
+macos:
+  # Local / CI auto-update tests usually skip Developer ID + notarization.
+  # Enable identity / notary_profile when shipping real releases.
+  sign:
+    enabled: false
+  dmg:
+    volume_name: XueHua Auto Update Example
+    format: UDZO
+  pkg:
+    identifier: com.kurban.xue_hua_navite_auto_update_example
+    install_location: /Applications
+    title: XueHua Auto Update Example
+    min_os: "12.0"
+
+windows:
+  inno_setup:
+    # Keep AppId stable forever so upgrades replace the previous install.
+    app_id: A1B2C3D4-E5F6-7890-ABCD-EF1234567890
+    languages: [zh-CN, en]
+    # user = AppData\Local\Programs, no UAC — best for plugin auto-update demos.
+    # Use admin when installing under Program Files.
+    privileges: user
+    desktop_icon: checked
+    run_after_install: true
+    default_dir: '{localappdata}\Programs\XueHuaAutoUpdateExample'
+    group_name: XueHua Auto Update Example
+    updates_url: https://github.com/Matkurban/xue_hua_navite_auto_update/releases
+
+linux:
+  icon: linux/icon.png
+  package_name: xue-hua-navite-auto-update-example
+  categories: [Utility, Development]
+  generic_name: Auto Update Workbench
+  keywords: [update, flutter, desktop]
+  deb:
+    depends: ["libgtk-3-0 | libgtk-3-0t64"]
+    section: utils
+  appimage:
+    # empty update_information: this demo uses xue_hua_navite_auto_update, not AppImageUpdate

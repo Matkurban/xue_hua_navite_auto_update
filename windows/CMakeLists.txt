@@ -69,6 +69,8 @@ set(xue_hua_navite_auto_update_bundled_libraries
 # Only enable test builds when building the example (which sets this variable)
 # so that plugin clients aren't building the tests.
 if (${include_${PROJECT_NAME}_tests})
+# Newer CMake removed compat with <3.5; googletest 1.11 still declares an older minimum.
+set(CMAKE_POLICY_VERSION_MINIMUM 3.5)
 set(TEST_RUNNER "${PROJECT_NAME}_test")
 enable_testing()
 
