@@ -88,13 +88,6 @@ std::wstring GetParentDirectory(const std::wstring& path) {
   return path.substr(0, pos);
 }
 
-// Returns the filename portion of a path.
-std::wstring GetFileNamePart(const std::wstring& path) {
-  size_t pos = path.find_last_of(L"\\/");
-  if (pos == std::wstring::npos) return path;
-  return path.substr(pos + 1);
-}
-
 // Detects whether the current process is running inside a Windows MSIX / AppX
 // Store package container where self-replacement is prohibited.
 bool IsRunningInMsixContainer() {
@@ -678,7 +671,6 @@ void XueHuaNaviteAutoUpdatePlugin::HandleInstallAndRelaunch(
 
   std::wstring target_exe = GetCurrentExecutablePath();
   std::wstring target_dir = GetParentDirectory(target_exe);
-  std::wstring target_exe_name = GetFileNamePart(target_exe);
   DWORD current_pid = GetCurrentProcessId();
 
   // Build Inno Setup command-line arguments:
