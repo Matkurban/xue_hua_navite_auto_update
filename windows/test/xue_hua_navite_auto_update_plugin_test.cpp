@@ -2,7 +2,10 @@
 #include <flutter/method_result_functions.h>
 #include <flutter/standard_method_codec.h>
 #include <gtest/gtest.h>
-#include <shellapi.h>
+// windows.h must be included before any SDK header that uses EXTERN_C /
+// DECLSPEC_IMPORT (e.g. shellapi.h). gtest does not guarantee a full
+// windows.h include, so pull it in explicitly after gtest (gtest may
+// include winsock2.h first).
 #include <windows.h>
 
 #include <string>
@@ -256,18 +259,10 @@ TEST(XueHuaNaviteAutoUpdatePlugin,
 }  // namespace test
 }  // namespace xue_hua_navite_auto_update
 
-int main(int argc, char** argv) {
-  int wargc = 0;
-  LPWSTR* wargv = CommandLineToArgvW(GetCommandLineW(), &wargc);
-  if (wargv && wargc >= 3 &&
-      wcscmp(wargv[1], L"--launch-guard-and-exit") == 0) {
-    const std::wstring script = wargv[2];
-    LocalFree(wargv);
-    return xue_hua_navite_auto_update::LaunchDetachedUpdaterGuard(script) ? 0
+int wmain(int argc, wchar_t** argv) {
+  if (argc >= 3 && wcscmp(argv[1], L"--launch-guard-and-exit") == 0) {
+    return xue_hua_navite_auto_update::LaunchDetachedUpdaterGuard(argv[2]) ? 0
                                                                          : 1;
-  }
-  if (wargv) {
-    LocalFree(wargv);
   }
   testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();

@@ -8,7 +8,21 @@
 #include <objbase.h>
 #include <oleauto.h>
 #include <shellapi.h>
+
+// wingdi.h (via windows.h / UNICODE) #defines GetObject → GetObjectW. If that
+// macro is live while wbemidl.h is parsed, IWbemServices::GetObject is rewritten
+// on the interface and later calls fail with C2039. The matching call site also
+// push/undef/pops the macro so a later header cannot rename the invocation.
+#ifdef GetObject
+#pragma push_macro("GetObject")
+#undef GetObject
+#define XUE_HUA_RESTORE_GETOBJECT
+#endif
 #include <wbemidl.h>
+#ifdef XUE_HUA_RESTORE_GETOBJECT
+#pragma pop_macro("GetObject")
+#undef XUE_HUA_RESTORE_GETOBJECT
+#endif
 
 #include <flutter/method_channel.h>
 #include <flutter/plugin_registrar_windows.h>
@@ -22,11 +36,6 @@
 #include <sstream>
 #include <string>
 #include <vector>
-
-// windows.h maps GetObject to GetObjectW, which is not an IWbemServices method.
-#ifdef GetObject
-#undef GetObject
-#endif
 
 #ifndef NT_SUCCESS
 #define NT_SUCCESS(Status) (((NTSTATUS)(Status)) >= 0)
@@ -237,7 +246,10 @@ bool LaunchViaWmi(const std::wstring& command_line, DWORD* out_pid) {
 
   IWbemClassObject* process_class = nullptr;
   BSTR class_name = SysAllocString(L"Win32_Process");
+#pragma push_macro("GetObject")
+#undef GetObject
   hr = services->GetObject(class_name, 0, nullptr, &process_class, nullptr);
+#pragma pop_macro("GetObject")
   if (FAILED(hr) || process_class == nullptr) {
     SysFreeString(class_name);
     services->Release();
