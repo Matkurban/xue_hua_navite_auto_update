@@ -22,21 +22,24 @@ using flutter::MethodResultFunctions;
 
 }  // namespace
 
-TEST(XueHuaNaviteAutoUpdatePlugin, GetPlatformVersion) {
+TEST(XueHuaNaviteAutoUpdatePlugin, CheckEnvironmentReturnsValidWindowsMap) {
   XueHuaNaviteAutoUpdatePlugin plugin;
-  // Save the reply value from the success callback.
-  std::string result_string;
+  EncodableMap env_map;
   plugin.HandleMethodCall(
-      MethodCall("getPlatformVersion", std::make_unique<EncodableValue>()),
+      MethodCall("checkEnvironment", std::make_unique<EncodableValue>()),
       std::make_unique<MethodResultFunctions<>>(
-          [&result_string](const EncodableValue* result) {
-            result_string = std::get<std::string>(*result);
+          [&env_map](const EncodableValue* result) {
+            env_map = std::get<EncodableMap>(*result);
           },
           nullptr, nullptr));
 
-  // Since the exact string varies by host, just ensure that it's a string
-  // with the expected format.
-  EXPECT_TRUE(result_string.rfind("Windows ", 0) == 0);
+  auto platform_it = env_map.find(EncodableValue("platform"));
+  ASSERT_NE(platform_it, env_map.end());
+  EXPECT_EQ(std::get<std::string>(platform_it->second), "windows");
+
+  auto pid_it = env_map.find(EncodableValue("processId"));
+  ASSERT_NE(pid_it, env_map.end());
+  EXPECT_GT(std::get<int64_t>(pid_it->second), 0);
 }
 
 }  // namespace test

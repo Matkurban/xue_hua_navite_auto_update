@@ -2,29 +2,43 @@ import Cocoa
 import FlutterMacOS
 import XCTest
 
-// If your plugin has been explicitly set to "type: .dynamic" in the Package.swift,
-// you will need to add your plugin as a dependency of RunnerTests within Xcode.
-
 @testable import xue_hua_navite_auto_update
-
-// This demonstrates a simple unit test of the Swift portion of this plugin's implementation.
-//
-// See https://developer.apple.com/documentation/xctest for more information about using XCTest.
 
 class RunnerTests: XCTestCase {
 
-  func testGetPlatformVersion() {
+  func testCheckEnvironment() {
     let plugin = XueHuaNaviteAutoUpdatePlugin()
+    let call = FlutterMethodCall(methodName: "checkEnvironment", arguments: nil)
 
-    let call = FlutterMethodCall(methodName: "getPlatformVersion", arguments: [])
-
-    let resultExpectation = expectation(description: "result block must be called.")
+    let resultExpectation = expectation(description: "checkEnvironment returns environment map.")
     plugin.handle(call) { result in
-      XCTAssertEqual(result as! String,
-                     "macOS " + ProcessInfo.processInfo.operatingSystemVersionString)
+      guard let map = result as? [String: Any] else {
+        XCTFail("Expected dictionary response from checkEnvironment")
+        return
+      }
+      XCTAssertEqual(map["platform"] as? String, "macos")
+      XCTAssertNotNil(map["executablePath"] as? String)
+      XCTAssertNotNil(map["bundlePath"] as? String)
+      XCTAssertGreaterThan((map["processId"] as? Int) ?? 0, 0)
       resultExpectation.fulfill()
     }
-    waitForExpectations(timeout: 1)
+    waitForExpectations(timeout: 2)
   }
 
+  func testVerifyPackageChecksum() throws {
+    let tempURL = FileManager.default.temporaryDirectory
+      .appendingPathComponent("xue_hua_test_\(UUID().uuidString).dmg")
+    try "abc".data(using: .utf8)?.write(to: tempURL)
+    defer {
+      try? FileManager.default.removeItem(at: tempURL)
+    }
+
+    let expected = "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
+    XCTAssertTrue(
+      XueHuaNaviteAutoUpdatePlugin.verifySha256(
+        filePath: tempURL.path,
+        expectedHex: expected
+      )
+    )
+  }
 }
