@@ -91,7 +91,7 @@
 
 ```yaml
 dependencies:
-  xue_hua_navite_auto_update: ^1.0.0
+  xue_hua_navite_auto_update: ^1.0.1
 ```
 
 或者通过 Git 仓库依赖：
