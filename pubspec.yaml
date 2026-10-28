@@ -1,6 +1,6 @@
 name: xue_hua_navite_auto_update
-description: "A production-grade Flutter desktop (macOS, Windows, Linux) auto-update and self-relaunch plugin with out-of-process native progress UI, on-demand elevation (Touch ID/UAC/Polkit), and automatic rollback."
-version: 1.0.0
+description: "Flutter desktop auto-update plugin for macOS, Windows, and Linux with native progress UI, elevation, and rollback."
+version: 1.0.1
 homepage: https://github.com/Matkurban/xue_hua_navite_auto_update
 repository: https://github.com/Matkurban/xue_hua_navite_auto_update
 issue_tracker: https://github.com/Matkurban/xue_hua_navite_auto_update/issues
