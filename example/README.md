@@ -19,7 +19,7 @@ For a real in-place update, install a packaged build (not `flutter run` from the
 
 1. Bump `version` in `example/pubspec.yaml` (for example `1.0.0+1` → `1.0.1+2`).
 2. Package a **newer** installer with [fpack](https://github.com/Matkurban/fpack) (`fpack.yaml` in this directory).
-3. Install / copy the **older** app into a writable location (`/Applications` on macOS, the Inno user-install dir on Windows, or a writable AppImage path on Linux).
+3. Install / copy the **older** app into a writable location (`/Applications` on macOS, the Inno user-install dir on Windows, a writable `.AppImage` path, or the same `/opt/xue-hua-navite-auto-update-example` prefix used by `.deb` / `.rpm`).
 4. Launch that older app, then pick the newer artifact.
 
 ## Manual test: pick a freshly built fpack artifact
@@ -32,7 +32,7 @@ From `example/`:
 fpack doctor
 fpack build dmg --no-sign --force          # macOS
 fpack build exe --force                    # Windows (needs Inno Setup)
-fpack build appimage deb --force           # Linux
+fpack build appimage deb rpm --force       # Linux (rpm can be *built* on Debian hosts)
 ```
 
 Artifacts land under `example/dist/{version}/` (see `fpack.yaml`). `SHA256SUMS` is written next to them when checksums are enabled.
@@ -62,13 +62,31 @@ Canceling the picker (`null`) only writes a log line. `FileOperationsException` 
 
 You can still paste a path and use **Verify SHA-256** / **立即重启并安装更新** without picking a file.
 
+## Linux formats (AppImage / deb / rpm)
+
+All three Linux artifacts share `linux.package_name` and `linux.prefix` in `fpack.yaml`. Build them together, then test each format from a **packaged** install of the older version (not `flutter run`).
+
+```bash
+fpack build appimage deb rpm --force
+```
+
+| Format | How to install the older app | What `installAndRelaunch` needs |
+| :--- | :--- | :--- |
+| `.AppImage` | `chmod +x` the older AppImage and launch it from a writable directory | `$APPIMAGE` must be set (the AppImage runtime injects this). Without it the plugin reports `missingAppImageEnv`. No Polkit / root password. |
+| `.deb` | `sudo apt install ./…-linux-….deb` on Debian/Ubuntu | Same prefix as the newer `.deb` (`/opt/xue-hua-navite-auto-update-example/xue_hua_navite_auto_update_example`). `pkexec apt-get install` shows a graphical Polkit prompt. |
+| `.rpm` | `sudo dnf install ./…-linux-….rpm` (or `zypper` / `rpm -Uvh`) | Same prefix as the newer `.rpm`. `pkexec dnf` / `zypper` / `rpm -Uvh --replacepkgs` shows Polkit. |
+
+**rpm verify vs build:** Debian/Ubuntu hosts can still *build* `.rpm` with fpack. Install-and-relaunch verification belongs on Fedora, RHEL, or openSUSE (a desktop session with Polkit). After `pkexec` finishes, the updater relaunches as the original non-root desktop user — do not start the GUI as root.
+
+Headless e2e on Linux uses `--e2e-package=` with a `.AppImage`, `.deb`, or `.rpm` path (same flags as below).
+
 ## Headless e2e flags (unchanged)
 
 ```text
---e2e-package=/path/to/update.(dmg|exe|AppImage) --e2e-sha=<hex>
+--e2e-package=/path/to/update.(dmg|pkg|exe|AppImage|deb|rpm) --e2e-sha=<hex>
 ```
 
-When `--e2e-package=` is present, the workbench still writes JSON to the platform temp dir as `xue_hua_auto_update_e2e.json` and runs the same verify + `installAndRelaunch` path. The pick-file button is for humans; do not remove these flags.
+When `--e2e-package=` is present, the workbench still writes JSON to the platform temp dir as `xue_hua_auto_update_e2e.json` and runs the same verify + `installAndRelaunch` path. The pick-file button is for humans; do not remove these flags. Pass a real `.deb` or `.rpm` on Linux the same way you pass an `.AppImage`.
 
 ## Host permissions
 

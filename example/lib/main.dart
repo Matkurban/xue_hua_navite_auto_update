@@ -405,7 +405,7 @@ class _AutoUpdateWorkbenchPageState extends State<AutoUpdateWorkbenchPage> {
 
 
   /// Headless e2e: launch with
-  /// `--e2e-package=/path/to/update.(dmg|exe|AppImage) --e2e-sha=<hex>`
+  /// `--e2e-package=/path/to/update.(dmg|pkg|exe|AppImage|deb|rpm) --e2e-sha=<hex>`
   /// Writes JSON result to the platform temp dir as `xue_hua_auto_update_e2e.json`.
   Future<void> _maybeRunE2EUpdate() async {
     String? package;

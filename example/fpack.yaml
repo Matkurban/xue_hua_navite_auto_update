@@ -8,7 +8,7 @@
 #   fpack doctor
 #   fpack build dmg --no-sign --force          # macOS local test without notarization
 #   fpack build exe --force                   # Windows (needs Inno Setup)
-#   fpack build appimage deb --force           # Linux
+#   fpack build appimage deb rpm --force       # Linux (rpm can be built on Debian hosts too)
 # Then install the lower version, point the workbench at the higher-version
 # artifact + its SHA-256 from SHA256SUMS, and tap installAndRelaunch.
 
@@ -23,7 +23,7 @@ app:
 
 build:
   # Default targets when running plain `fpack build` (machine builds what it can).
-  targets: [dmg, pkg, exe, appimage, deb]
+  targets: [dmg, pkg, exe, appimage, deb, rpm]
 
 output:
   dir: "dist/{version}{+build}"
@@ -63,12 +63,19 @@ windows:
 
 linux:
   icon: linux/icon.png
+  # Shared by .deb and .rpm. Keep prefix + binary name stable across versions so
+  # installAndRelaunch can relaunch the same path after pkexec.
   package_name: xue-hua-navite-auto-update-example
+  prefix: /opt/xue-hua-navite-auto-update-example
   categories: [Utility, Development]
   generic_name: Auto Update Workbench
   keywords: [update, flutter, desktop]
   deb:
     depends: ["libgtk-3-0 | libgtk-3-0t64"]
     section: utils
+  rpm:
+    requires: [gtk3]
+    group: Applications/System
+    license: BSD-3-Clause
   appimage:
     # empty update_information: this demo uses xue_hua_navite_auto_update, not AppImageUpdate
