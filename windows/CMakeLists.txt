@@ -20,6 +20,7 @@ set(PLUGIN_NAME "xue_hua_navite_auto_update_plugin")
 list(APPEND PLUGIN_SOURCES
   "xue_hua_navite_auto_update_plugin.cpp"
   "xue_hua_navite_auto_update_plugin.h"
+  "xue_hua_navite_auto_update_plugin_private.h"
 )
 
 # Define the plugin library target. Its name must not be changed (see comment
@@ -52,6 +53,9 @@ target_link_libraries(${PLUGIN_NAME} PRIVATE
   bcrypt
   shell32
   advapi32
+  ole32
+  oleaut32
+  wbemuuid
 )
 
 # List of absolute paths to libraries that should be bundled with the plugin.
@@ -100,7 +104,10 @@ target_link_libraries(${TEST_RUNNER} PRIVATE
   bcrypt
   shell32
   advapi32
-  gtest_main
+  ole32
+  oleaut32
+  wbemuuid
+  gtest
   gmock
 )
 # flutter_wrapper_plugin has link dependencies on the Flutter DLL.

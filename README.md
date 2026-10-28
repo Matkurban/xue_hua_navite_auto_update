@@ -2,7 +2,7 @@
 
 **English** | [简体中文](README_ZH.md)
 
-[![Pub Version](https://img.shields.io/badge/pub-v1.0.0-blue)](https://github.com/Matkurban/xue_hua_navite_auto_update)
+[![Pub Version](https://img.shields.io/badge/pub-v1.0.1-blue)](https://github.com/Matkurban/xue_hua_navite_auto_update)
 [![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-blueviolet)](https://github.com/Matkurban/xue_hua_navite_auto_update)
 [![License](https://img.shields.io/badge/license-BSD--3--Clause-green)](LICENSE)
 
@@ -74,7 +74,7 @@ Designed to deliver the same seamless update experience as **VS Code, Sparkle, a
 | Platform | Supported Formats | Out-of-Process Progress UI | Privilege Elevation (On-Demand) | Rollback & Relaunch Guarantee |
 | :--- | :--- | :--- | :--- | :--- |
 | **macOS** (`12.0+`, Swift + SPM) | `.dmg`<br>`.pkg` | Detached `/usr/bin/swift` AppKit HUD window (`NSPanel` + `NSVisualEffectView` + `NSProgressIndicator`, dark-mode adaptive) | **Passwordless** if `/Applications` is writable by the current user; otherwise prompts **Touch ID / Admin Password** via `osascript` (`with administrator privileges`) | Backs up `.app` to `.app.bak`; restores `.app.bak` and relaunches via `/usr/bin/open -n` if `codesign` fails, copy fails, or password prompt is cancelled |
-| **Windows** (`Win10/11`, C++ Win32) | Inno Setup `.exe` | Passes `/SILENT /SUPPRESSMSGBOXES /NORESTART /SP- /CLOSEAPPLICATIONS` when `showProgressDialog: true` (shows **Inno Setup's native progress bar window** while skipping wizard pages) | - `PrivilegesRequired=lowest` (`AppData\Local\Programs`): **Zero UAC prompts**<br>- `PrivilegesRequired=admin` (`Program Files`): **Single UAC prompt** | Detached hidden guardian process (`CREATE_NO_WINDOW \| DETACHED_PROCESS`) waits for the installer to exit and explicitly relaunches the `.exe` if `[Run]` did not start it or UAC was cancelled |
+| **Windows** (`Win10/11`, C++ Win32) | Inno Setup `.exe` | Passes `/SILENT /SUPPRESSMSGBOXES /NORESTART /SP- /CLOSEAPPLICATIONS` when `showProgressDialog: true` (shows **Inno Setup's native progress bar window** while skipping wizard pages) | - `PrivilegesRequired=lowest` (`AppData\Local\Programs`): **Zero UAC prompts**<br>- `PrivilegesRequired=admin` (`Program Files`): **Single UAC prompt** | Detached hidden guardian process (absolute `powershell.exe` path, `CREATE_NO_WINDOW \| CREATE_BREAKAWAY_FROM_JOB`, WMI fallback) waits for the installer to exit and explicitly relaunches the `.exe` if `[Run]` did not start it or UAC was cancelled |
 | **Linux** (`GTK3`, C++ & Polkit) | `.AppImage`<br>`.deb`<br>`.rpm` | Centered native `zenity --progress --auto-close --no-cancel` dialog showing real-time stage percentages | - `.AppImage`: **Passwordless** atomic replacement of `$APPIMAGE`<br>- `.deb`: `pkexec apt-get install -y --allow-downgrades`<br>- `.rpm`: `pkexec dnf install -y` / `zypper` / `rpm -Uvh` (**Polkit graphical dialog**) | `.AppImage` backs up `.bak` and restores on failure; `.deb`/`.rpm` always drops back to the **non-root desktop user** and relaunches via `nohup` |
 
 ---
