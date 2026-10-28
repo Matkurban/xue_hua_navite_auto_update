@@ -36,6 +36,10 @@ add_library(${PLUGIN_NAME} SHARED
 # full control over build settings.
 apply_standard_settings(${PLUGIN_NAME})
 
+# Decode this plugin's sources as UTF-8 so MSVC on CP936 (and other
+# non-UTF-8) code pages does not treat Unicode comments as C4819/C2220.
+target_compile_options(${PLUGIN_NAME} PRIVATE $<$<CXX_COMPILER_ID:MSVC>:/utf-8>)
+
 # Symbols are hidden by default to reduce the chance of accidental conflicts
 # between plugins. This should not be removed; any symbols that should be
 # exported should be explicitly exported with the FLUTTER_PLUGIN_EXPORT macro.
@@ -73,17 +77,32 @@ set(xue_hua_navite_auto_update_bundled_libraries
 # Only enable test builds when building the example (which sets this variable)
 # so that plugin clients aren't building the tests.
 if (${include_${PROJECT_NAME}_tests})
-# Newer CMake removed compat with <3.5; googletest 1.11 still declares an older minimum.
-set(CMAKE_POLICY_VERSION_MINIMUM 3.5)
 set(TEST_RUNNER "${PROJECT_NAME}_test")
 enable_testing()
 
 # Add the Google Test dependency.
 include(FetchContent)
-FetchContent_Declare(
-  googletest
-  URL https://github.com/google/googletest/archive/release-1.11.0.zip
-)
+# CMP0135: use extraction time for FetchContent archive timestamps (CMake 3.24+).
+if(POLICY CMP0135)
+  cmake_policy(SET CMP0135 NEW)
+endif()
+# CMake 4.x treats cmake_minimum_required < 3.5 as an error unless this is set.
+set(CMAKE_POLICY_VERSION_MINIMUM 3.5)
+set(_xue_hua_googletest_url
+    "https://github.com/google/googletest/archive/refs/tags/v1.16.0.zip")
+if(POLICY CMP0135)
+  FetchContent_Declare(
+    googletest
+    URL ${_xue_hua_googletest_url}
+    DOWNLOAD_EXTRACT_TIMESTAMP TRUE
+  )
+else()
+  FetchContent_Declare(
+    googletest
+    URL ${_xue_hua_googletest_url}
+  )
+endif()
+unset(_xue_hua_googletest_url)
 # Prevent overriding the parent project's compiler/linker settings
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 # Disable install commands for gtest so it doesn't end up in the bundle.
@@ -97,6 +116,7 @@ add_executable(${TEST_RUNNER}
   ${PLUGIN_SOURCES}
 )
 apply_standard_settings(${TEST_RUNNER})
+target_compile_options(${TEST_RUNNER} PRIVATE $<$<CXX_COMPILER_ID:MSVC>:/utf-8>)
 target_compile_definitions(${TEST_RUNNER} PRIVATE UNICODE _UNICODE)
 target_include_directories(${TEST_RUNNER} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
 target_link_libraries(${TEST_RUNNER} PRIVATE

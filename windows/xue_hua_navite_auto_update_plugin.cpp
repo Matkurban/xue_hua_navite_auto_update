@@ -9,7 +9,7 @@
 #include <oleauto.h>
 #include <shellapi.h>
 
-// UNICODE windows.h maps GetObject → GetObjectW (wingdi). That macro must be
+// UNICODE windows.h maps GetObject -> GetObjectW (wingdi). That macro must be
 // undefined *before* wbemidl.h so IWbemServices::GetObject is declared as
 // GetObject (not GetObjectW). Do not restore it: the later call uses the
 // same name. GDI GetObject is unused in this TU.
