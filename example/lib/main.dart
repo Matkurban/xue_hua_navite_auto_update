@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:xue_hua_file_operations/xue_hua_file_operations.dart';
 import 'package:xue_hua_navite_auto_update/xue_hua_navite_auto_update.dart';
 
 void main(List<String> args) {
@@ -74,6 +75,8 @@ class _AutoUpdateWorkbenchPageState extends State<AutoUpdateWorkbenchPage> {
   String? _computedSha256;
   bool? _checksumMatched;
   bool _verifyingChecksum = false;
+  bool _pickingPackage = false;
+  String? _pickedPackageName;
   final List<String> _logs = <String>[];
 
   @override
@@ -135,6 +138,17 @@ class _AutoUpdateWorkbenchPageState extends State<AutoUpdateWorkbenchPage> {
     }
   }
 
+  /// Desktop installer extensions for [XueHuaFileOperations.pickFile].
+  List<String> _installerAllowedExtensions() {
+    if (Platform.isMacOS) {
+      return const <String>['dmg', 'pkg'];
+    }
+    if (Platform.isWindows) {
+      return const <String>['exe'];
+    }
+    return const <String>['AppImage', 'appimage', 'deb', 'rpm'];
+  }
+
   void _appendLog(String message) {
     final now = DateTime.now().toIso8601String().substring(11, 19);
     setState(() {
@@ -177,10 +191,73 @@ class _AutoUpdateWorkbenchPageState extends State<AutoUpdateWorkbenchPage> {
       );
     } on PlatformException catch (e) {
       _appendLog('checkEnvironment() failed: [${e.code}] ${e.message}');
+    } catch (e) {
+      _appendLog('checkEnvironment() failed: $e');
     } finally {
       if (mounted) {
         setState(() {
           _loadingEnv = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _pickUpdatePackageAndInstall() async {
+    setState(() {
+      _pickingPackage = true;
+    });
+    try {
+      final file = await XueHuaFileOperations.instance.pickFile(
+        dialogTitle: '选择更新包 / Pick update package',
+        type: FileType.custom,
+        allowedExtensions: _installerAllowedExtensions(),
+      );
+      if (!mounted) {
+        return;
+      }
+      if (file == null) {
+        _appendLog('Package pick cancelled — no file selected.');
+        return;
+      }
+
+      final path = (file.path ?? '').trim();
+      setState(() {
+        _pickedPackageName = file.name;
+        _checksumMatched = null;
+        _computedSha256 = null;
+        if (path.isNotEmpty) {
+          _packagePathController.text = path;
+        }
+      });
+      _appendLog(
+        'Picked update package: ${file.name}'
+        '${path.isEmpty ? ' (empty path)' : ' ($path)'}'
+        '${file.size > 0 ? ', ${file.size} bytes' : ''}.',
+      );
+
+      if (path.isEmpty) {
+        _appendLog(
+          'Aborted installAndRelaunch: pickFile returned a file without a '
+          'local path.',
+        );
+        return;
+      }
+
+      await _refreshEnvironment();
+      if (!mounted) {
+        return;
+      }
+      await _triggerInstallAndRelaunch();
+    } on FileOperationsException catch (e) {
+      _appendLog(
+        'pickFile() FileOperationsException: [${e.code.code}] ${e.message}',
+      );
+    } catch (e) {
+      _appendLog('pickFile() error: $e');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _pickingPackage = false;
         });
       }
     }
@@ -201,6 +278,7 @@ class _AutoUpdateWorkbenchPageState extends State<AutoUpdateWorkbenchPage> {
       if (!mounted) return;
       setState(() {
         _packagePathController.text = file.path;
+        _pickedPackageName = file.uri.pathSegments.lastOrNull ?? file.path;
         _expectedSha256Controller.text = sha;
         _computedSha256 = sha;
         _checksumMatched = null;
@@ -498,16 +576,17 @@ class _AutoUpdateWorkbenchPageState extends State<AutoUpdateWorkbenchPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            Row(
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              crossAxisAlignment: WrapCrossAlignment.center,
               children: <Widget>[
                 const Icon(Icons.verified_user_outlined),
-                const SizedBox(width: 8),
                 Text(
                   '1. Runtime Environment Pre-flight (checkEnvironment)',
                   style: Theme.of(context).textTheme.titleMedium
                       ?.copyWith(fontWeight: FontWeight.bold),
                 ),
-                const Spacer(),
                 FilledButton.tonalIcon(
                   onPressed: _loadingEnv ? null : _refreshEnvironment,
                   icon: const Icon(Icons.radar, size: 18),
@@ -516,8 +595,12 @@ class _AutoUpdateWorkbenchPageState extends State<AutoUpdateWorkbenchPage> {
               ],
             ),
             const Divider(height: 24),
-            if (env == null)
+            if (_loadingEnv && env == null)
               const Center(child: CircularProgressIndicator())
+            else if (env == null)
+              const Text(
+                'Environment info is not available yet. Use Re-check.',
+              )
             else ...<Widget>[
               Wrap(
                 spacing: 8,
@@ -577,16 +660,17 @@ class _AutoUpdateWorkbenchPageState extends State<AutoUpdateWorkbenchPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            Row(
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              crossAxisAlignment: WrapCrossAlignment.center,
               children: <Widget>[
                 const Icon(Icons.fingerprint),
-                const SizedBox(width: 8),
                 Text(
                   '2. Package Selection & Streaming SHA-256 Checksum',
                   style: Theme.of(context).textTheme.titleMedium
                       ?.copyWith(fontWeight: FontWeight.bold),
                 ),
-                const Spacer(),
                 OutlinedButton.icon(
                   onPressed: _generateMockInstallerFile,
                   icon: const Icon(Icons.science_outlined, size: 18),
@@ -595,6 +679,35 @@ class _AutoUpdateWorkbenchPageState extends State<AutoUpdateWorkbenchPage> {
               ],
             ),
             const Divider(height: 24),
+            SizedBox(
+              width: double.infinity,
+              height: 46,
+              child: FilledButton.tonalIcon(
+                onPressed: _pickingPackage ? null : _pickUpdatePackageAndInstall,
+                icon: const Icon(Icons.folder_open),
+                label: const Text(
+                  '选择更新包 / Pick update package',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Picks a local installer '
+              '(${_installerAllowedExtensions().join(', ')}), then runs '
+              'checkEnvironment → optional SHA-256 → installAndRelaunch. '
+              'Fill the SHA-256 field first if you want checksum verification. '
+              'Cancel leaves the current path unchanged.',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            if (_pickedPackageName != null) ...<Widget>[
+              const SizedBox(height: 8),
+              SelectableText(
+                'Chosen package: $_pickedPackageName',
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
+            ],
+            const SizedBox(height: 12),
             TextField(
               controller: _packagePathController,
               decoration: const InputDecoration(
@@ -667,16 +780,17 @@ class _AutoUpdateWorkbenchPageState extends State<AutoUpdateWorkbenchPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            Row(
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              crossAxisAlignment: WrapCrossAlignment.center,
               children: <Widget>[
                 const Icon(Icons.rocket_launch_outlined),
-                const SizedBox(width: 8),
                 Text(
                   '3. Out-of-Process Progress UI & Relaunch (installAndRelaunch)',
                   style: Theme.of(context).textTheme.titleMedium
                       ?.copyWith(fontWeight: FontWeight.bold),
                 ),
-                const Spacer(),
                 SegmentedButton<bool>(
                   segments: const <ButtonSegment<bool>>[
                     ButtonSegment<bool>(value: true, label: Text('中文文案')),
@@ -694,6 +808,7 @@ class _AutoUpdateWorkbenchPageState extends State<AutoUpdateWorkbenchPage> {
               children: <Widget>[
                 Expanded(
                   child: DropdownButtonFormField<UpdatePackageType?>(
+                    isExpanded: true,
                     initialValue: _explicitPackageType,
                     decoration: const InputDecoration(
                       labelText: 'Package Format (packageType)',
@@ -883,16 +998,17 @@ class _AutoUpdateWorkbenchPageState extends State<AutoUpdateWorkbenchPage> {
       children: <Widget>[
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-          child: Row(
+          child: Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: <Widget>[
               const Icon(Icons.terminal, size: 18),
-              const SizedBox(width: 8),
               Text(
                 'Event & Diagnostic Log',
                 style: Theme.of(context).textTheme.titleSmall
                     ?.copyWith(fontWeight: FontWeight.bold),
               ),
-              const Spacer(),
               TextButton(
                 onPressed: () => setState(_logs.clear),
                 child: const Text('Clear'),

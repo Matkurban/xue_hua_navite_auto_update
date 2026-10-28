@@ -3,6 +3,7 @@
 #
 
 list(APPEND FLUTTER_PLUGIN_LIST
+  xue_hua_file_operations
   xue_hua_navite_auto_update
 )
 

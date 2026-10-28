@@ -1,3 +1,7 @@
+## Unreleased
+
+* Example workbench: pick a local installer with `xue_hua_file_operations` (`选择更新包 / Pick update package`), then run `checkEnvironment`, optional `verifyPackageChecksum`, and `installAndRelaunch`. Headless `--e2e-package` / `--e2e-sha` flags are unchanged.
+
 ## 1.0.1
 
 * **Windows**: Fix `installAndRelaunch` so the detached Inno Setup guardian actually stays alive after the Flutter process exits.
